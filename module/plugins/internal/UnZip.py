@@ -11,6 +11,7 @@ from module.plugins.internal.Extractor import Extractor, ArchiveError, CRCError,
 
 class UnZip(Extractor):
     __name__    = "UnZip"
+    __type__    = "extractor"
     __version__ = "1.20"
     __status__  = "testing"
 
@@ -26,11 +27,6 @@ class UnZip(Extractor):
     @classmethod
     def find(cls):
         return sys.version_info[:2] >= (2, 6)
-
-
-    @classmethod
-    def ismultipart(cls, filename):
-         return False  #@NOTE: Unsupported (rarely used anyway)
 
 
     def list(self, password=None):

@@ -8,19 +8,6 @@ from module.plugins.internal.Plugin import Plugin
 from module.plugins.internal.utils import encode
 
 
-def renice(pid, value):
-    if not value or os.name is "nt":
-        return
-
-    try:
-        subprocess.Popen(["renice", str(value), str(pid)],
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE,
-                         bufsize=-1)
-    except Exception:
-        pass
-
-
 class ArchiveError(Exception):
     pass
 
@@ -36,7 +23,7 @@ class PasswordError(Exception):
 class Extractor(Plugin):
     __name__    = "Extractor"
     __type__    = "extractor"
-    __version__ = "0.38"
+    __version__ = "0.40"
     __status__  = "testing"
 
     __description__ = """Base extractor plugin"""
@@ -54,6 +41,11 @@ class Extractor(Plugin):
     def isarchive(cls, filename):
         name = os.path.basename(filename).lower()
         return any(name.endswith(ext) for ext in cls.EXTENSIONS)
+
+
+    @classmethod
+    def ismultipart(cls, filename):
+        return False
 
 
     @classmethod
@@ -118,13 +110,6 @@ class Extractor(Plugin):
         self.init()
 
 
-    def init(self):
-        """
-        Initialize additional data structures
-        """
-        pass
-
-
     def _log(self, level, plugintype, pluginname, messages):
         messages = (self.__name__,) + messages
         return self.plugin._log(level, plugintype, self.plugin.__name__, messages)
@@ -139,7 +124,7 @@ class Extractor(Plugin):
 
 
     def repair(self):
-        return False
+        pass
 
 
     def extract(self, password=None):
