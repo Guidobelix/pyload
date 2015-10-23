@@ -11,7 +11,7 @@ from module.plugins.internal.utils import replace_patterns, set_cookie, set_cook
 class SimpleCrypter(Crypter):
     __name__    = "SimpleCrypter"
     __type__    = "crypter"
-    __version__ = "0.74"
+    __version__ = "0.77"
     __status__  = "testing"
 
     __pattern__ = r'^unmatchable$'
@@ -75,9 +75,7 @@ class SimpleCrypter(Crypter):
 
     WAIT_PATTERN         = None
     PREMIUM_ONLY_PATTERN = None
-    HAPPY_HOUR_PATTERN   = None
     IP_BLOCKED_PATTERN   = None
-    DL_LIMIT_PATTERN     = None
     SIZE_LIMIT_PATTERN   = None
     ERROR_PATTERN        = None
 
@@ -89,7 +87,7 @@ class SimpleCrypter(Crypter):
 
     @classmethod
     def get_info(cls, url="", html=""):
-        info = super(SimpleHoster, cls).get_info(url)
+        info = super(SimpleCrypter, cls).get_info(url)
 
         info.update(cls.api_info(url))
 
@@ -129,19 +127,25 @@ class SimpleCrypter(Crypter):
 
 
     #@TODO: Remove in 0.4.10
-    def _setup(self):
-        orig_name      = self.classname
-        self.classname = orig_name.rstrip("Folder")
-        super(SimpleCrypter, self)._setup()
-        self.classname = orig_name
+    def setup_base(self):
+        account_name = self.classname.rsplit("Folder", 1)[0]
+
+        if self.account:
+            self.req     = self.pyload.requestFactory.getRequest(account_name, self.account.user)
+            self.premium = self.account.info['data']['premium']  #@NOTE: Avoid one unnecessary get_info call by `self.account.premium` here
+        else:
+            self.req     = self.pyload.requestFactory.getRequest(account_name)
+            self.premium = False
+
+        super(SimpleCrypter, self).setup_base()
 
 
     #@TODO: Remove in 0.4.10
     def load_account(self):
-        orig_name      = self.classname
-        self.classname = orig_name.rstrip("Folder")
+        class_name = self.classname
+        self.__class__.__name__ = class_name.rsplit("Folder", 1)[0]
         super(SimpleCrypter, self).load_account()
-        self.classname = orig_name
+        self.__class__.__name__ = class_name
 
 
     def handle_direct(self, pyfile):
@@ -212,6 +216,7 @@ class SimpleCrypter(Crypter):
 
         if not self.urls and not self.packages:
             self.preload()
+            self.check_errors()
 
             self.urls.extend(self.get_links())
 
@@ -271,7 +276,7 @@ class SimpleCrypter(Crypter):
 
         for p in xrange(2, pages + 1):
             self.html = self.load_page(p)
-            self.urls.append(self.get_links())
+            self.urls.extend(self.get_links())
 
 
     def check_errors(self):
@@ -288,27 +293,6 @@ class SimpleCrypter(Crypter):
 
             elif self.SIZE_LIMIT_PATTERN and re.search(self.SIZE_LIMIT_PATTERN, self.html):
                 self.fail(_("Link list too large for free decrypt"))
-
-            elif self.DL_LIMIT_PATTERN and re.search(self.DL_LIMIT_PATTERN, self.html):
-                m = re.search(self.DL_LIMIT_PATTERN, self.html)
-                try:
-                    errmsg = m.group(1).strip()
-
-                except (AttributeError, IndexError):
-                    errmsg = m.group(0).strip()
-
-                finally:
-                    errmsg = re.sub(r'<.*?>', " ", errmsg)
-
-                self.info['error'] = errmsg
-                self.log_warning(errmsg)
-
-                wait_time = parse_time(errmsg)
-                self.wait(wait_time, reconnect=wait_time > self.get_config("max_wait", 10) * 60)
-                self.restart(_("Download limit exceeded"))
-
-        if self.HAPPY_HOUR_PATTERN and re.search(self.HAPPY_HOUR_PATTERN, self.html):
-            self.multiDL = True
 
         if self.ERROR_PATTERN:
             m = re.search(self.ERROR_PATTERN, self.html)

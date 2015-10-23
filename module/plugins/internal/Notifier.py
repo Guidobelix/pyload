@@ -9,7 +9,7 @@ from module.plugins.internal.utils import isiterable
 class Notifier(Addon):
     __name__    = "Notifier"
     __type__    = "hook"
-    __version__ = "0.02"
+    __version__ = "0.04"
     __status__  = "testing"
 
     __config__ = [("activated"      , "bool", "Activated"                                , False),
@@ -85,7 +85,7 @@ class Notifier(Addon):
     @Expose
     def notify(self, event, msg="", key=None):
         key = key or self.get_key()
-        if isiterable(key) and all(key) or not key:
+        if not key or isiterable(key) and not all(key):
             return
 
         if self.pyload.isClientConnected() and not self.get_config('ignoreclient'):
@@ -96,11 +96,13 @@ class Notifier(Addon):
         if elapsed_time < self.get_config("sendtimewait"):
             return
 
-        if elapsed_time > 60:
+        elif elapsed_time > 60:
             self.notifications = 0
 
         elif self.notifications >= self.get_config("sendpermin"):
             return
+
+        self.log_info(_("Sending notification..."))
 
         try:
             resp = self.send(event, msg, key)

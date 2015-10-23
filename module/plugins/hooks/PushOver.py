@@ -8,7 +8,7 @@ from module.plugins.internal.Notifier import Notifier
 class PushOver(Notifier):
     __name__    = "PushOver"
     __type__    = "hook"
-    __version__ = "0.02"
+    __version__ = "0.04"
     __status__  = "testing"
 
     __config__ = [("activated"      , "bool", "Activated"                                , False),
@@ -38,4 +38,4 @@ class PushOver(Notifier):
                   post={'token'	 : token,
                         'user'   : user,
                         'title'  : event,
-                        'message': msg})
+                        'message': msg or event})  #@NOTE: msg can not be None or empty

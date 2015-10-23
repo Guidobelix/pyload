@@ -13,7 +13,7 @@ class Captcha(Plugin):
     __name__    = "Captcha"
     __type__    = "captcha"
     __version__ = "0.47"
-    __status__  = "testing"
+    __status__  = "stable"
 
     __description__ = """Base anti-captcha plugin"""
     __license__     = "GPLv3"
@@ -107,7 +107,7 @@ class Captcha(Plugin):
             except OSError, e:
                 self.log_warning(_("Error removing `%s`") % tmp_img.name, e)
 
-        #self.log_info(_("Captcha result: ") + result)  #@TODO: Remove from here?
+        # self.log_info(_("Captcha result: ") + result)  #@TODO: Remove from here?
 
         return result
 

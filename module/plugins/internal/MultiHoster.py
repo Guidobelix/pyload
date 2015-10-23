@@ -2,15 +2,16 @@
 
 import re
 
-from module.plugins.internal.Plugin import Fail, encode
-from module.plugins.internal.SimpleHoster import SimpleHoster, create_getInfo, replace_patterns, set_cookie, set_cookies
+from module.plugins.internal.Plugin import Fail
+from module.plugins.internal.SimpleHoster import SimpleHoster, create_getInfo
+from module.plugins.internal.utils import encode, replace_patterns, set_cookie, set_cookies
 
 
 class MultiHoster(SimpleHoster):
     __name__    = "MultiHoster"
     __type__    = "hoster"
-    __version__ = "0.56"
-    __status__  = "testing"
+    __version__ = "0.58"
+    __status__  = "stable"
 
     __pattern__ = r'^unmatchable$'
     __config__  = [("activated"   , "bool", "Activated"                                 , True),
@@ -26,6 +27,7 @@ class MultiHoster(SimpleHoster):
 
     PLUGIN_NAME   = None
 
+    DIRECT_LINK   = None
     LEECH_HOSTER  = False
     LOGIN_ACCOUNT = True
 
@@ -45,23 +47,21 @@ class MultiHoster(SimpleHoster):
         self.resume_download = self.premium
 
 
-    def prepare(self):
-        #@TODO: Recheck in 0.4.10
-        plugin = self.pyload.pluginManager.hosterPlugins[self.classname]
-        name   = plugin['name']
-        module = plugin['module']
-        klass  = getattr(module, name)
-
+    #@TODO: Recheck in 0.4.10
+    def setup_base(self):
+        klass = self.pyload.pluginManager.loadClass("hoster", self.classname)
         self.get_info = klass.get_info
 
-        if self.DIRECT_LINK is None:
-            direct_dl = self.__pattern__ != r'^unmatchable$' and re.match(self.__pattern__, self.pyfile.url)
-        else:
-            direct_dl = self.DIRECT_LINK
+        super(MultiHoster, self).setup_base()
 
+
+    def prepare(self):
         super(MultiHoster, self).prepare()
 
-        self.direct_dl = direct_dl
+        if self.DIRECT_LINK is None:
+            self.direct_dl = self.__pattern__ != r'^unmatchable$' and re.match(self.__pattern__, self.pyfile.url)
+        else:
+            self.direct_dl = self.DIRECT_LINK
 
 
     def _process(self, thread):

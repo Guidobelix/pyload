@@ -11,8 +11,8 @@ from module.plugins.internal.utils import parse_html_form, parse_time, set_cooki
 class XFSAccount(MultiAccount):
     __name__    = "XFSAccount"
     __type__    = "account"
-    __version__ = "0.54"
-    __status__  = "testing"
+    __version__ = "0.55"
+    __status__  = "stable"
 
     __config__ = [("activated"     , "bool"               , "Activated"                    , True ),
                   ("multi"         , "bool"               , "Multi-hoster"                 , True ),
@@ -47,17 +47,26 @@ class XFSAccount(MultiAccount):
     LOGIN_SKIP_PATTERN    = r'op=logout'
 
 
-    def set_xfs_cookie(self):
-        if not self.PLUGIN_DOMAIN:
-            self.log_warning(_("Unable to set xfs cookie due missing PLUGIN_DOMAIN"))
-            return
-
+    def _set_xfs_cookie(self):
         cookie = (self.PLUGIN_DOMAIN, "lang", "english")
-
         if isinstance(self.COOKIES, list) and cookie not in self.COOKIES:
             self.COOKIES.insert(cookie)
         else:
             set_cookie(self.req.cj, *cookie)
+
+
+    def setup(self):
+        if not self.PLUGIN_DOMAIN:
+            self.fail_login(_("Missing PLUGIN DOMAIN"))
+
+        if not self.PLUGIN_URL:
+            self.PLUGIN_URL = "http://www.%s/" % self.PLUGIN_DOMAIN
+
+        if not self.LOGIN_URL:
+            self.LOGIN_URL  = urlparse.urljoin(self.PLUGIN_URL, "login.html")
+
+        if self.COOKIES:
+            self._set_xfs_cookie()
 
 
     def grab_hosters(self, user, password, data):
@@ -100,7 +109,7 @@ class XFSAccount(MultiAccount):
                     premium    = False
                     validuntil = None  #: Registered account type (not premium)
         else:
-            self.log_debug("VALID_UNTIL_PATTERN not found")
+            self.log_debug("VALID UNTIL PATTERN not found")
 
         m = re.search(self.TRAFFIC_LEFT_PATTERN, self.html)
         if m is not None:
@@ -128,7 +137,7 @@ class XFSAccount(MultiAccount):
             except Exception, e:
                 self.log_error(e)
         else:
-            self.log_debug("TRAFFIC_LEFT_PATTERN not found")
+            self.log_debug("TRAFFIC LEFT PATTERN not found")
 
         leech = [m.groupdict() for m in re.finditer(self.LEECH_TRAFFIC_PATTERN, self.html)]
         if leech:
@@ -155,7 +164,7 @@ class XFSAccount(MultiAccount):
             except Exception, e:
                 self.log_error(e)
         else:
-            self.log_debug("LEECH_TRAFFIC_PATTERN not found")
+            self.log_debug("LEECH TRAFFIC PATTERN not found")
 
         return {'validuntil'  : validuntil,
                 'trafficleft' : trafficleft,
@@ -164,19 +173,6 @@ class XFSAccount(MultiAccount):
 
 
     def signin(self, user, password, data):
-        if self.PLUGIN_DOMAIN:
-            if not self.PLUGIN_URL:
-                self.PLUGIN_URL = "http://www.%s/" % self.PLUGIN_DOMAIN
-
-            if self.COOKIES:
-                self.set_xfs_cookie()
-
-        if not self.PLUGIN_URL:
-            self.fail_login(_("Missing PLUGIN_URL"))
-
-        if not self.LOGIN_URL:
-            self.LOGIN_URL  = urlparse.urljoin(self.PLUGIN_URL, "login.html")
-
         self.html = self.load(self.LOGIN_URL, cookies=self.COOKIES)
 
         if re.search(self.LOGIN_SKIP_PATTERN, self.html):

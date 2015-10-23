@@ -5,16 +5,15 @@ import re
 
 from module.plugins.captcha.ReCaptcha import ReCaptcha
 from module.plugins.captcha.SolveMedia import SolveMedia
-from module.plugins.internal.Plugin import set_cookie
 from module.plugins.internal.SimpleHoster import SimpleHoster, create_getInfo
-from module.plugins.internal.utils import html_unescape, seconds_to_midnight
+from module.plugins.internal.utils import html_unescape, seconds_to_midnight, set_cookie
 
 
 class XFSHoster(SimpleHoster):
     __name__    = "XFSHoster"
     __type__    = "hoster"
-    __version__ = "0.67"
-    __status__  = "testing"
+    __version__ = "0.70"
+    __status__  = "stable"
 
     __pattern__ = r'^unmatchable$'
     __config__  = [("activated"   , "bool", "Activated"                                 , True),
@@ -31,6 +30,7 @@ class XFSHoster(SimpleHoster):
 
     PLUGIN_DOMAIN         = None
 
+    DIRECT_LINK           = None
     LEECH_HOSTER          = True  #@NOTE: hould be set to `False` by default for safe, but I am lazy...
 
     NAME_PATTERN          = r'(Filename[ ]*:[ ]*</b>(</td><td nowrap>)?|name="fname"[ ]+value="|<[\w^_]+ class="(file)?name">)\s*(?P<N>.+?)(\s*<|")'
@@ -61,13 +61,8 @@ class XFSHoster(SimpleHoster):
         self.resume_download = self.premium
 
 
-    def set_xfs_cookie(self):
-        if not self.PLUGIN_DOMAIN:
-            self.log_warning(_("Unable to set xfs cookie due missing PLUGIN_DOMAIN"))
-            return
-
+    def _set_xfs_cookie(self):
         cookie = (self.PLUGIN_DOMAIN, "lang", "english")
-
         if isinstance(self.COOKIES, list) and cookie not in self.COOKIES:
             self.COOKIES.insert(cookie)
         else:
@@ -75,22 +70,11 @@ class XFSHoster(SimpleHoster):
 
 
     def prepare(self):
-        """
-        Initialize important variables
-        """
         if not self.PLUGIN_DOMAIN:
-            if self.account:
-                account = self.account
-            else:
-                account = self.pyload.accountManager.getAccountPlugin(self.classname)
-
-            if account and hasattr(account, "PLUGIN_DOMAIN") and account.PLUGIN_DOMAIN:
-                self.PLUGIN_DOMAIN = account.PLUGIN_DOMAIN
-            else:
-                self.fail(_("Missing PLUGIN_DOMAIN"))
+            self.fail(_("Missing PLUGIN DOMAIN"))
 
         if self.COOKIES:
-            self.set_xfs_cookie()
+            self._set_xfs_cookie()
 
         if not self.LINK_PATTERN:
             pattern = r'(?:file: "(.+?)"|(https?://(?:www\.)?([^/]*?%s|\d+\.\d+\.\d+\.\d+)(\:\d+)?(/d/|(/files)?/\d+/\w+/).+?)["\'<])'
@@ -112,7 +96,7 @@ class XFSHoster(SimpleHoster):
             if m is not None:
                 break
 
-            data = self.get_post_parameters()
+            data = self._post_parameters()
 
             self.html = self.load(pyfile.url, post=data, redirect=False)
 
@@ -189,7 +173,7 @@ class XFSHoster(SimpleHoster):
             self.link = header.get('location')
 
 
-    def get_post_parameters(self):
+    def _post_parameters(self):
         if self.FORM_PATTERN or self.FORM_INPUTS_MAP:
             action, inputs = self.parse_html_form(self.FORM_PATTERN or "", self.FORM_INPUTS_MAP or {})
         else:
