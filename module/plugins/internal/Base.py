@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import inspect
-import mimetypes
 import os
 import re
 import time
@@ -37,7 +36,7 @@ def create_getInfo(klass):
 class Base(Plugin):
     __name__    = "Base"
     __type__    = "base"
-    __version__ = "0.17"
+    __version__ = "0.18"
     __status__  = "stable"
 
     __pattern__ = r'^unmatchable$'
@@ -101,7 +100,7 @@ class Base(Plugin):
         self.captcha = Captcha(self)
 
         #: Some plugins store html code here
-        self.html = None
+        self.data = ""
 
         #: Dict of the amount of retries already made
         self.retries = {}
@@ -137,9 +136,9 @@ class Base(Plugin):
 
     def _setup(self):
         #@TODO: Remove in 0.4.10
-        self.html          = ""
-        self.pyfile.error  = ""
-        self.last_html     = None
+        self.data         = ""
+        self.pyfile.error = ""
+        self.last_html    = None
 
         if self.get_config('use_premium', True):
             self.load_account()  #@TODO: Move to PluginThread in 0.4.10
@@ -221,7 +220,7 @@ class Base(Plugin):
         self.log_info(_("Grabbing link info..."))
 
         old_info = dict(self.info)
-        new_info = self.get_info(self.pyfile.url, self.html)
+        new_info = self.get_info(self.pyfile.url, self.data)
 
         self.info.update(new_info)
 
@@ -491,7 +490,7 @@ class Base(Plugin):
 
 
     def parse_html_form(self, attr_str="", input_names={}):
-        return parse_html_form(attr_str, self.html, input_names)
+        return parse_html_form(attr_str, self.data, input_names)
 
 
     def get_password(self):
