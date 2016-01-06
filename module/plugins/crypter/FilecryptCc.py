@@ -7,9 +7,9 @@ import binascii
 import re
 import urlparse
 
-from Crypto.Cipher import AES
+import Crypto.Cipher
 
-from module.plugins.internal.Crypter import Crypter, create_getInfo
+from module.plugins.internal.Crypter import Crypter
 from module.plugins.captcha.ReCaptcha import ReCaptcha
 from module.plugins.captcha.SolveMedia import SolveMedia
 
@@ -17,7 +17,7 @@ from module.plugins.captcha.SolveMedia import SolveMedia
 class FilecryptCc(Crypter):
     __name__    = "FilecryptCc"
     __type__    = "crypter"
-    __version__ = "0.22"
+    __version__ = "0.23"
     __status__  = "testing"
 
     __pattern__ = r'https?://(?:www\.)?filecrypt\.cc/Container/\w+'
@@ -119,10 +119,11 @@ class FilecryptCc(Crypter):
             elif m3:  #: Solvemedia captcha
                 self.log_debug("Solvemedia Captcha URL: %s" % urlparse.urljoin(self.pyfile.url, m3.group(1)))
 
-                solvemedia  = SolveMedia(self)
+                solvemedia  = SolveMedia(self.pyfile)
                 captcha_key = solvemedia.detect_key()
 
                 if captcha_key:
+                    self.captcha = solvemedia
                     response, challenge = solvemedia.challenge(captcha_key)
                     self.site_with_links  = self.load(self.pyfile.url,
                                                       post={'adcopy_response'  : response,
@@ -133,10 +134,12 @@ class FilecryptCc(Crypter):
                 self.retry()
 
             else:
-                recaptcha   = ReCaptcha(self)
+                recaptcha   = ReCaptcha(self.pyfile)
                 captcha_key = recaptcha.detect_key()
 
                 if captcha_key:
+                    self.captcha = recaptcha
+
                     try:
                         response, challenge = recaptcha.challenge(captcha_key)
 
@@ -202,7 +205,7 @@ class FilecryptCc(Crypter):
         #: Decrypt
         Key  = key
         IV   = key
-        obj  = AES.new(Key, AES.MODE_CBC, IV)
+        obj  = Crypto.Cipher.AES.new(Key, Crypto.Cipher.AES.MODE_CBC, IV)
         text = obj.decrypt(crypted.decode('base64'))
 
         #: Extract links
@@ -210,6 +213,3 @@ class FilecryptCc(Crypter):
         links = filter(bool, text.split('\n'))
 
         return links
-
-
-getInfo = create_getInfo(FilecryptCc)
